@@ -19,7 +19,36 @@ router.get("/", checkLogin,
       })
     res.send(users);
   });
+router.patch("/change-password", checkLogin, async function (req, res, next) {
+  try {
+    let userId = req.userId;
+    let { oldPassword, newPassword } = req.body;
 
+    if (!oldPassword || !newPassword) {
+      return res.status(400).send({ message: "Old password and new password are required" });
+    }
+
+    let user = await userModel.findById(userId);
+    if (!user) {
+      return res.status(404).send({ message: "User not found" });
+    }
+
+    let isMatch = await bcrypt.compare(oldPassword, user.password);
+    if (!isMatch) {
+      return res.status(400).send({ message: "Old password is incorrect" });
+    }
+
+    let salt = await bcrypt.genSalt(10);
+    let hashedNewPassword = await bcrypt.hash(newPassword, salt);
+
+    user.password = hashedNewPassword;
+    await user.save();
+
+    res.send({ message: "Password changed successfully" });
+  } catch (err) {
+    res.status(400).send({ message: err.message });
+  }
+});
 router.get("/:id", checkLogin, checkRole("ADMIN", "MODERATOR"), async function (req, res, next) {
   try {
     let result = await userModel
@@ -72,35 +101,6 @@ router.put("/:id", checkLogin, checkRole("ADMIN"), async function (req, res, nex
   }
 });
 
-router.put("/change-password", checkLogin, async function (req, res, next) {
-  try {
-    let userId = req.userId;
-    let { oldPassword, newPassword } = req.body;
 
-    if (!oldPassword || !newPassword) {
-      return res.status(400).send({ message: "Old password and new password are required" });
-    }
-
-    let user = await userModel.findById(userId);
-    if (!user) {
-      return res.status(404).send({ message: "User not found" });
-    }
-
-    let isMatch = await bcrypt.compare(oldPassword, user.password);
-    if (!isMatch) {
-      return res.status(400).send({ message: "Old password is incorrect" });
-    }
-
-    let salt = await bcrypt.genSalt(10);
-    let hashedNewPassword = await bcrypt.hash(newPassword, salt);
-
-    user.password = hashedNewPassword;
-    await user.save();
-
-    res.send({ message: "Password changed successfully" });
-  } catch (err) {
-    res.status(400).send({ message: err.message });
-  }
-});
 
 module.exports = router;

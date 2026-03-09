@@ -37,14 +37,17 @@ app.use(function (req, res, next) {
 });
 
 // error handler
-app.use(function (err, req, res, next) {
-  // set locals, only providing error in development
-  res.locals.message = err.message;
-  res.locals.error = req.app.get('env') === 'development' ? err : {};
-
-  // render the error page
+app.use(function(err, req, res, next) {
+  // Thiết lập status code
   res.status(err.status || 500);
-  res.render('error');
+  
+  // Trả về JSON để Git Bash có thể đọc được thay vì HTML
+  res.json({
+    success: false,
+    message: err.message,
+    // Hiển thị stack lỗi nếu đang ở môi trường dev
+    error: req.app.get('env') === 'development' ? err.stack : {}
+  });
 });
 
 module.exports = app;
